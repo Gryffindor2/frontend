@@ -1,92 +1,65 @@
 'use client'
-import { Separator, 
+import { 
   Box, 
   Flex, 
   Button, 
-  Link, 
-  DropdownMenu, 
   TextArea,
   SegmentedControl,
   Card,
-  Text,
-  Popover,Avatar} from '@radix-ui/themes';
-import { logout } from '@/app/public/auth';
-function UserAvatar(){
-  return (
-    <Avatar fallback='A' radius='full' size='2'/>
-  )
-}
+  Text,} from '@radix-ui/themes';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
-function Head() {
-  return (
-    <Flex direction="row" align='end'className='m-1.5'>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          <Button variant='solid'>
-            工具
-          <DropdownMenu.TriggerIcon />
-          </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content>
-          <DropdownMenu.Item>新闻分类</DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-      <Box flexBasis='100%'></Box>
-      <Box flexShrink='0'>
-        <Link href='/history'>历史记录</Link>
-      </Box>
-      
-
-      <Popover.Root>
-        <Popover.Trigger>
-          <Box className='ml-1.5'><UserAvatar/></Box>
-        </Popover.Trigger>
-        <Popover.Content>
-          <Flex direction='column' gap='3'>
-            <Box>
-              <Flex direction='row' gap='5' align='end'>
-                <UserAvatar/>
-                <Text>Admin</Text>
-              </Flex>
-            </Box>
-            <Box>
-              <Flex direction='row'>
-                <Box flexBasis='100%'></Box>
-                <Button onClick={()=>{
-                  logout();
-                  window.location.href = '/'
-                  }}>退出</Button>
-              </Flex>
-              
-            </Box>
-          </Flex>
-        </Popover.Content>
-      </Popover.Root>
-    </Flex>
-  )
-}
-
-function Info({value}) {
-  return (
-    <>
-      <Box flexBasis='100%'></Box>
-      <Flex direction='row'>
+function ClassificationResult({result, message}) {
+  if (result.length === 0) {
+    return (
+      <>
         <Box flexBasis='100%'></Box>
-        <Box flexShrink='0'>
-
-          <Text size="7" color='gray'>{value}</Text>
-        </Box>
+        <Flex direction='row'>
+          <Box flexBasis='100%'></Box>
+          <Box flexShrink='0'>
+            <Text size="7" color='gray'>{message}</Text>
+          </Box>
+          <Box flexBasis='100%'></Box>
+        </Flex>
         <Box flexBasis='100%'></Box>
-      </Flex>
-      <Box flexBasis='100%'></Box>
-    </>)
+      </>
+    )
+  }
+  else{
+    return (
+      <>
+      {Object.entries(result).map(([key, value]) => {
+        return (
+          <Card id='{key}' className={value>0.6?'bg-green-400':'bg-red-300'}>
+            <Text size="7" color='gray'>{key}: </Text>
+            <Text size="7" color='gray'>{value * 100}%</Text>
+          </Card>
+        )
+          
+      })}
+      </>
+    )
+  }
 }
 
 function Body() {
+  const [message, setMessage] = useState('未分类');
+  const [newsText, setNewsText] = useState('');
+  const [algorithm, setAlgorithm] = useState('a1');
+  const [token, settoken] = useState('');
+  const [result, setResult] = useState([]);
+  useEffect(() => {
+    settoken(localStorage.getItem("token"));
+  })
   return (
       <Flex direction='row' className='m-1.5 h-full'>
         <Box flexBasis='100%'>
-          <TextArea placeholder="在这里输入新闻文本" className='h-full'/>
+          <TextArea onChange={(e) => {
+            var value = e.target.value;
+            setNewsText(value);
+          }
+          } placeholder="在这里输入新闻文本" className='h-full'/>
         </Box>
         <Box className='w-2.5'>
 
@@ -94,18 +67,41 @@ function Body() {
         <Box flexBasis='100%'>
           <Flex className='h-full' direction='column'>
             <Flex direction='row'>
-              <SegmentedControl.Root defaultValue="inbox">
+              <SegmentedControl.Root defaultValue="a1" onValueChange={(value) => {
+                setAlgorithm(value);
+              }}>
                 <SegmentedControl.Item value="a1">算法1</SegmentedControl.Item>
                 <SegmentedControl.Item value="a2">算法2</SegmentedControl.Item>
                 <SegmentedControl.Item value="a3">算法3</SegmentedControl.Item>
               </SegmentedControl.Root>
               <Box flexBasis='100%'/>
-              <Button>分类</Button>
+              <Button onClick={() => {
+                const formData = new FormData();
+                formData.append('text', newsText);
+                formData.append('algorithm', algorithm);
+                formData.append('token', token);
+                setMessage('分类中');
+                setResult([]);
+                axios.post('http://api.news-toolbox.secretqsan.top/classify', formData)
+                .then((response) => {
+                  if(response.data.auth == false){
+                    window.location.href = "/login";
+                  }
+                  else{
+                    setResult(response.data.result);
+                  }
+                })
+                .catch((error) => {
+                  console.log(error);
+                  setMessage("网络错误");
+                })
+              }}
+              >分类</Button>
             </Flex>
 
             <Card className='h-full mt-1 bg-gray-200'>
-              <Flex direction='column' className='h-full'>
-                <Info value={'未分类'}/>
+              <Flex direction='column' className='h-full' gap='2'>
+                <ClassificationResult result={result} message={message}></ClassificationResult>
               </Flex>
             </Card>
           </Flex>
@@ -116,10 +112,6 @@ function Body() {
 
 export default function Home() {
   return (
-    <Flex direction="column" className='h-full' >
-      <Head />
-      <Separator size="4" />
-      <Body />
-    </Flex>
+    <Body></Body>
   );
 }

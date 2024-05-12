@@ -1,12 +1,13 @@
-export function login(){
-    localStorage.setItem("tocken", "123456789");
+export function logout(){
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
 }
 
-export function logout(){
-    localStorage.removeItem("tocken");
+export function getToken(){
+    return localStorage.getItem("token");
 }
 
 export function authenticated(){
-    var tocken = localStorage.getItem("tocken");
-    return tocken? true: false;
+    var token = localStorage.getItem("token");
+    return token? true: false;
 }

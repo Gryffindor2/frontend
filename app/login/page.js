@@ -57,8 +57,9 @@ export default function Home() {
                         axios.post('http://api.news-toolbox.secretqsan.top/login', formData)
                         .then((response)=>{
                           console.log(response.data); 
-                          if(response.data.tocken != ''){
-                            localStorage.setItem("tocken", response.data.tocken);
+                          if(response.data.token != ''){
+                            localStorage.setItem("token", response.data.token);
+                            localStorage.setItem("username", username);
                             window.location.href="/";
                             set_login_failed(false);
                           }
